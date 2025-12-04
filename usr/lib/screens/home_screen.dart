@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:app_settings/app_settings.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,13 +24,36 @@ class _HomeScreenState extends State<HomeScreen> {
       _isHotspotOn = value;
     });
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(value ? 'Hotspot enabled' : 'Hotspot disabled'),
-        backgroundColor: value ? Colors.green : Colors.grey,
-        duration: const Duration(seconds: 2),
-      ),
-    );
+    if (kIsWeb) {
+      // Web browsers cannot access device hardware settings
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Note: Web browsers cannot directly control device Hotspot.'),
+          backgroundColor: Colors.orange,
+          action: SnackBarAction(
+            label: 'OK',
+            textColor: Colors.white,
+            onPressed: () {},
+          ),
+        ),
+      );
+    } else {
+      // On Mobile/Native, we can try to open settings
+      // Direct programmatic toggling is restricted by OS security (Android/iOS)
+      // so we redirect the user to the settings page.
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(value ? 'Opening Hotspot Settings...' : 'Opening Settings...'),
+          backgroundColor: value ? Colors.green : Colors.grey,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      
+      // Small delay to let the UI update before switching apps
+      Future.delayed(const Duration(milliseconds: 300), () {
+        AppSettings.openAppSettings(type: AppSettingsType.hotspot);
+      });
+    }
   }
 
   void _toggleUserBlock(int index) {
@@ -134,7 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 24),
             SwitchListTile(
               title: const Text('Enable Hotspot'),
-              subtitle: const Text('Allow users to connect'),
+              subtitle: const Text('Open device settings to toggle'),
               value: _isHotspotOn,
               onChanged: _toggleHotspot,
               secondary: const Icon(Icons.power_settings_new),
